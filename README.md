@@ -1,1 +1,5 @@
 # Cereal-Manufacturing-Process-Control
+
+This was the second project for my Statistical Engineering course. This was a group project where we were tasked with performing process control testing for a fictional company called "Gorey-combs" to determine if their manufacturing process was under control. After collecting the data ourselves (using store bought cereal and our own definition of "defect"), we used control charts such as an Xbar Chart, U-Charts and P-charts to determine that the process was wildly out of control. After determining that there was significant differences even between scoop weights between operators, we gave recommendations to improve the process including better training and methods to reduce the defect rates. 
+
+This project deepened my understanding of process control and the importance of control charts and frequent quality control tests. Furthermore, I learned what can be done to resolve issues with process control in manufacturing sites and what recommendations are the most feasible in a real-world setting. 
