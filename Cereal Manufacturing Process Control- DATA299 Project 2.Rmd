@@ -1,0 +1,307 @@
+---
+title: 'Cereal Manufacturing Process Control'
+subtitle: 'DATA299 Statistical Engineering - FA24 - Project 2'
+author: "Group 8: Siera Edwards, Spencer Fiden, Jennifer Arreola"
+output:
+  html_document:
+    toc: true         # Enables the Table of Contents
+    toc_depth: 2      # Controls depth of headings in the TOC
+    toc_float:        # Makes the TOC float on the left side
+      collapsed: false  # TOC will be expanded by default
+      smooth_scroll: true  # Adds smooth scrolling to section links
+    number_sections: true  # Enables numbered sections
+    theme: united     # Optional: Bootstrap theme for styling
+---
+
+<center>![](https://www.ussportscamps.com/media/legacy/willamettelogo.jpg){width="75"}</center>
+
+------------------------------------------------------------------------
+
+```{r setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = "~/Desktop/DATA 299 Statistical Engineering/PROJECTS")
+
+library(tidyverse)
+```
+
+# Introduction
+
+Goreos cereal manufacturing was founded in the 1990s by a young entrepreneur with ambitions to produce the best cereal in the world. Initially, Goreos experienced tremendous growth with their hit cereal “Gorey-combs” along with their iconic and whimsical mascot, Goro. The company continued to grow and began producing multiple cereal products, all of which were widely successful. Goreos cereal manufacturing company and their products became a staple of many childhoods. However, as time went on, the rise of health-conscious cereal brands brought more fierce competition to the cereal industry. Consumer preference began to shift towards organic and nutritional cereals, thwarting Goreos’s reliance on nostalgia as a marketing strategy. Since this rise in competition, consumers have become increasingly more critical of the difference in portions and number of defects in their cereal. This has led to a decrease in sales and risk of falling behind for the rest of cereal history. Knowing that the manufacturing facilities have been experiencing fluctuations in the weight of cereal per scoop, the proportion of nonconforming pieces, and the number of pieces per scoop, they have chosen to respond by performing a process control evaluation. The company plans to use the results of this study to optimize their manufacturing process to appease consumers and compete once again for the best cereal manufacturer.
+
+# Methodology
+
+Designing the methodology of this study was important to ensure reliable results which would allow for decisions to be made about possible solutions. Goreos designated the target scoop weight to be 5 grams with a tolerance of ±1 gram. This implies that the lower specification limit is 4 grams, while the upper specification limit is 6 grams. With regards to the number of pieces per scoop, the goal is 50 pieces, however there is a tolerance of ±5 pieces. This means that the lower specification limit for pieces per scoop is 45 pieces, while the upper specification limit is 55 pieces. The equipment used in this data collection was a box of Gorey-combs cereal, a container to hold the cereal, a single plastic cup, and a scale with measurements out to the hundredth decimal place. 
+
+Before data collection, the cereal was poured into the container. Then, each operator practiced scooping with the goal of achieving the target weight of 5 grams. A sample size of 30 was chosen, with 3 operators this meant that each operator was collecting 10 samples. The order in which each operator collected each sample was randomized. Then, one operator used the plastic cup to scoop up the cereal, in a single attempt, in the same way that they would have practiced. After the cereal was scooped, the weight was recorded based on the scale’s measurement. Finally, the cereal was gently poured onto a table where the total number of pieces and the number of defect pieces was collected and recorded. For the purpose of this study, cereal pieces are classified as conforming if they are circular in shape and if they form a complete closed circle. After the pieces are counted, they are returned to the container of remaining cereal before the next plastic cup sample is collected. The data is collected with replacement to reduce bias as the sample size decreases over time. Oftentimes, the larger, more complete, pieces of cereal sit at the top of the container meaning that those pieces would be scooped in the initial samples, leaving defects with a disproportionate chance of being sampled later on. Data collection with replacement ensures that each piece of cereal has the same chance of being selected, making our sample representative of the population. The data collection process continued until all operators had collected 10 samples each. The data was all recorded in a spreadsheet, which was used in R to analyze the process control.
+
+# Control Charts
+
+Statistical Process Control (SPC) enables the analysis of process performance through the use of statistical tools and techniques that monitor and control variability. By tracking the consistency and stability of processes overtime, SPC employs control charts that provide a visual representation of data along with established control limits. This allows for the identification of variability and modeling of trends that can enhance process performance. Integrating SPC into quality management practices can significantly improve consistency be reducing process and performance defects, fostering a culture of continuous improvement.
+
+A stable process exhibits both a consistent mean and a controlled level of variation. X-bar charts, which track the average values of a process over time, are particularly useful for identifying shifts in process behavior. By plotting sample means and control limits, X-bar charts help determine whether the observed variation is due to common causes, which are inherent to the process or are due to special causes, which would indicate a problem.
+
+The x-bar chart of the Goreos Cereal, "Gorey-combs", manufacturing process plots the continuous data of the weight of the cereal scoop in the packaging process. As mentioned previously the target scoop weight was 5 grams with a tolerance of ±1 gram. Indicating lower and upper specification limits of 4 and 6 grams respectively. Further the data collected plotted the sample's mean at about 4.83 grams and its upper and lower control limits at 4.6 and 5 grams respectively. The plotted data shows consistent under performance in scoop weights as the upper control limit of the process indicates that over 99% of the data is performing under or at the target scoop weight of 5 grams. Further, the x-bar chart shows early warning signs of a potential process shift as both sides of the data show instances of more than two out of three points residing more than 2sigma from the center line. Beyond this the data is also reflective of the use of multiple operators in the data collection as more than eight points in a row reside more than 1sigma away from the center line. If we further facet our data by operator, we can see that the packaging process under performance is being strongly impacted by the weight of the scoops collected by the operator, Jennifer, of which the majority reside under the lower control limit. The data is indicative of a process that is out of control, this conclusion is further backed by the Cp and Cpk values, of .963 and .801 which indicate that the process in not capable of producing output within the specified limits and is thus leading to a defective manufacturing process. Cp and Cpk values under 1 are indicative of abnormal distribution meaning that the process is exacerbating normal process variation.
+
+## Weight of Scoops
+
+```{r echo=FALSE}
+# xbar chart
+
+#Read in Data
+ds = read_csv("Project2 randomized data (1).csv")
+
+#Randomization
+ds = ds %>%
+  slice_sample(prop=1)
+
+#Process Variation and Summary Values
+process_sd = sd(ds$Weight)
+
+summary_ds= ds %>%
+  summarize(
+    sample_mean=mean(Weight),
+    sample_sd=sd(Weight),
+    n=n()
+  )
+sample_average = summary_ds %>% pull()
+#Calculating X bar-bar:mean of sample means
+xbarbar= summary_ds %>%
+  summarize(
+    xbarbar=mean(sample_mean)
+  ) %>% pull()
+
+#LCL and UCL
+LCL = round(xbarbar - 3*process_sd/sqrt(30),1)
+UCL = round(xbarbar + 3*process_sd/sqrt(30),1)
+  
+#LSL and USL 5+/-1
+LSL = 4 #grams
+USL = 6 #grams
+
+
+#Xbar Chart
+ds$Trial <- as.character(ds$Trial)
+
+x_bar_chart = ds%>%
+  ggplot(aes (x=Trial, y=Weight, group=1)) +
+  geom_line(linewidth=1.10, color="navy")+
+  geom_hline(yintercept=c(LCL,UCL), color="cornflowerblue", linetype="dashed", linewidth=1) +
+  geom_hline(yintercept=xbarbar, color="black", linewidth=1)+
+  geom_hline(yintercept=c(LSL,USL), color="darkred", linewidth=1, linetype="dashed")+
+  #geom_hline(yintercept=5, color="darkgreen", linewidth=1.13, linetype="dashed")+
+  labs(
+    title= "Scoops Weight Xbar Chart",
+    x="Trial",
+    y="Weight(grams)")+
+  theme_bw()
+
+x_bar_chart
+
+#By operator
+ x_bar_chart_o = ds%>%
+  ggplot(aes (x=Trial, y=Weight, group=1)) +
+  geom_line(linewidth=1.10, color="navy")+
+  geom_hline(yintercept=c(LCL,UCL), color="cornflowerblue", linetype="dashed", linewidth=1) +
+  geom_hline(yintercept=xbarbar, color="black", linewidth=1)+
+  geom_hline(yintercept=c(LSL,USL), color="darkred", linewidth=1, linetype="dashed")+
+  #geom_hline(yintercept=5, color="darkgreen", linewidth=1.13, linetype="dashed")+
+  labs(
+    title= "Scoops Weight Xbar Chart",
+    x="Trial",
+    y="Weight(grams)")+
+  theme_bw()+
+   facet_wrap(~Operator)
+
+x_bar_chart_o
+
+  
+# Process Capability
+
+tolerance = USL - LSL
+
+Cp=tolerance/(6*process_sd)
+
+print(Cp)
+
+# Procces Capability Ratio
+
+Cpk_lower=(xbarbar-LSL)/(3*process_sd)
+Cpk_upper=(USL-xbarbar)/(3*process_sd)
+Cpk=min(Cpk_lower, Cpk_upper)
+
+print(Cpk)
+```
+
+## Pieces per Scoop
+
+U-charts are used in SPC to monitor and analyze count data. In the case of "Gorey-combs" cereal the U-chart was specifically utilized to measure if the correct quantity of cereal pieces was being delivered per scoop. By analyzing this data, the manufacturing process was evaluated for consistency and accuracy in order to ensure quality control.
+
+```{r echo=FALSE}
+cereal=read_csv("Project2 randomized data.csv")
+
+cereal_summary2=cereal %>% 
+    summarize(
+        avg_pieces=mean(`Number of pieces`),
+        LCL=avg_pieces-3*sqrt(avg_pieces/1),
+        UCL=avg_pieces+3*sqrt(avg_pieces/1)
+    )
+
+cereal %>%
+    ggplot(aes(x=Trial,y=`Number of pieces`)) +
+    geom_line(color="navy", linewidth=1.1) +
+    geom_hline(yintercept=c(cereal_summary2$LCL,cereal_summary2$UCL), 
+               color="cornflowerblue", linetype="dashed", linewidth=1) +
+    geom_hline(yintercept=cereal_summary2$avg_pieces, color="black", linewidth=1) +
+    geom_hline(yintercept=c(45,55), color="darkred", linewidth=1, linetype="dashed") +
+    theme_minimal() +
+    labs(
+        title="Number of pieces per scoop: u-chart"
+    )
+```
+
+This u-chart shows the number of pieces of cereal in each scoop. The upper and lower control limits are 33.6 and 78.5, shown by the dashed blue lines. The average number of pieces of cereal per scoop is 56.1, shown by the solid blue line. Goreo’s target was 50 pieces with a tolerance of ±5, shown by the red dashed lines. While the number of pieces was always above 45 in these trials, the number of pieces often far exceeded the upper limit of 55. This could be due to a large number of broken pieces, which take up less space in a scoop but are counted as defects. If the pieces were uniform in size, with fewer broken pieces, it is likely that the number of pieces would stabilize and decrease significantly.
+
+## Proportion Nonconforming Pieces Per Scoop
+
+P-Charts are used in SPC to monitor and analyze pass/fail data. P-Charts are the control charts for proportions and as such they measure the variation of nonconforming pieces that occur in the process, referred to as phat. As such Goreos Cereal, "Gorey-combs" manufacturing process was further evaluated by identifying the number of non-conforming pieces per cereal scoop.
+
+The P-Chart, below, depicts Goreo's declared specification limits for the number of defects in a scoop to be below 5%. This limit is represented by the dark red dashed lines. This P-Chart demonstrates that the number of defects in each scoop is far above the specification limits. This suggests that a large review of process quality needs to be done to assess where the number of defects is so high. Next, the P-Chart shows if the number of defects in each scoop is in control or not. The pooled proportion value is depicted by the solid black line, while the control limit (3sigma from the pooled proportion) is the medium blue dashed line. The dashed light blue lines represent the control lines 1sigma and 2sigma from the pooled proportion. Based on the Out of Control Conditions, it is clear that the number of defects in each scoop is not in control based on the large number of points that fall more than 3sigma from the pooled proportion. Furthermore, there are multiple instances of 2 out of 3 trials having defect rates more than two standard deviations from the pooled proportion and 4 out of 5 having defect rates more than one standard deviation from the pooled proportion. These would be called freak points and they could be due to errors in plotting, calculation errors, breakdown of facilities, or extraneous causes. They also suggest shifts in the manufacturing process. In knowing this, the calculations and plotting were double-checked, leading to a conclusion that these out of control points are due to a breakdown of facilities or extraneous causes. There also appears to be more than 14 points alternating up and down which could be caused by the existence of multiple suppliers. This could be explained by the multiple operators which can be examined next.
+
+Examining the P-Chart of defect rate by operator shows the difference in defect rates between the operators. Visually, the graphs show that Jennifer may have had the lower rate of defects on average, while Siera and Spencer had higher defect rates in general. Looking closer at a summary, Jennifer had an average defect rate of 17.7%, Spencer was at 21.3%, and Siera was at 23.5%. All of these averages far exceed the specification limits of 5% of less.
+
+Based on this analysis, major changes will need to be made to ensure that the number of defects is in control and is within the specification limits. With so many issues, it is recommended that a process redesign should be implemented with the goal of reducing the number of defects produced. This redesign should be combined with more staff training to ensure similar scooping methods with the goal of reducing the variability of the defect rate per scoop. Once this new process has been put into place, continued process control analysis should continue to occur to ensure there are no other process shifts in the defect rate and that the process is in control.
+
+```{r echo=FALSE}
+# p-chart 
+ds = read_csv("Project2 randomized data.csv")
+
+ds = ds %>%
+  mutate(
+    phat = `Number defects`/`Number of pieces`
+  )
+
+
+pooled_p = ds %>%
+  summarize(
+    p_tilde = sum(`Number defects`) / sum(`Number of pieces`)
+  ) %>%
+  pull()
+
+LCL = pooled_p - 3*sqrt(pooled_p * (1-pooled_p)/sum(ds$`Number of pieces`)) 
+LCL = max(LCL,0)
+UCL = pooled_p + 3*sqrt(pooled_p * (1-pooled_p)/sum(ds$`Number of pieces`))
+UCL = min(UCL, 1)
+LCL_1 = (pooled_p-LCL)/3 + LCL
+LCL_2 = 2* ((pooled_p-LCL)/3) + LCL
+UCL_1 = UCL - (UCL-pooled_p)/3 
+UCL_2 = UCL - 2 * (UCL-pooled_p)/3 #fix these limits
+
+USL = 0.05
+LSL = 0.00
+
+
+p_chart = ds %>%
+  ggplot(aes(x = Trial, y = phat)) +
+  geom_line(color = "navy", linewidth = 1.1) + #samples
+  geom_hline(yintercept = c(LCL, UCL), color="cornflowerblue", linetype="dashed", linewidth=1) + #control limits 3rd stdv
+  geom_hline(yintercept = c(LCL_2,UCL_2, LCL_1,UCL_1), color = "lightblue2", linetype = "dashed", linewidth = 1.0) +  #control limits 1st and 2nd stdv
+  geom_hline(yintercept = pooled_p, linewidth = 1.0) + #pooled_p
+  geom_hline(yintercept = c(USL, LSL), color="darkred", linewidth=1, linetype="dashed") + #specification limits
+  theme_minimal() + 
+  xlab("Trial #") + 
+  ylab("Percentage of defects") + 
+  scale_y_continuous(labels = scales::percent) + 
+  ggtitle("P-Chart for Defects in Cereal Scoops")
+
+p_chart
+
+
+#Operator by operator
+p_chart_operator = ds %>% 
+  ggplot(aes(x = Trial, y = phat)) +
+  geom_line(color = "navy", linewidth = 1.1) + #samples
+  geom_hline(yintercept = c(LCL, UCL), color="cornflowerblue", linetype="dashed", linewidth=1) + #control limits 3rd stdv
+  geom_hline(yintercept = c(LCL_2,UCL_2, LCL_1,UCL_1), color = "lightblue2", linetype = "dashed", linewidth = 1.0) +  #control limits 1st and 2nd stdv
+  geom_hline(yintercept = pooled_p, linewidth = 1.0) + #pooled_p
+  geom_hline(yintercept = c(USL, LSL), color="darkred", linewidth=1, linetype="dashed") + #specification limits
+  theme_minimal() + 
+  xlab("Trial #") + 
+  ylab("Percentage of defects") + 
+  scale_y_continuous(labels = scales::percent) + 
+  ggtitle("P-Chart for Defects in Cereal Scoops by Operator") + 
+  facet_grid(.~Operator)
+
+p_chart_operator
+
+
+p_summary = ds %>% 
+  group_by(Operator) %>%
+  summarize(
+    avg_defect_rate = mean(phat)
+)
+```
+
+# Process Evaluation and Improvement
+
+The SPC data analysis methodology was able to recognize the manufacturing process of Goreos Cereal, "Gorey-combs" as a process that was out of control though the analysis of various criteria. To recap, the target values of the manufacturing process were a scoop weight of 5 grams with a tolerance of ±1 gram, a quantity of 50 pieces of cereal per scoop with a tolerance of ±5 pieces and the target value of proportion of non-conforming pieces was set at less than 5% per scoop.
+
+The data metrics for the continuous data of weight per scoop concluded that the process was out of control as it often produced weights outside of the LCL and UCL, which highlighted significant deviation in the process that are not accounted for by common causes. Further the analysis highlighted the under performance of the scoop weight by calculating the upper control limit to be at five grams, meaning that over 99% of the data was falling under or at the 5 grams target. Although, this metric still showed that the process was performing within the specification limits, meaning that it was producing weight scoops that met quality requirements, the data was still indicative of an unstable process that could negatively impact the manufacturing process.
+
+```{r echo=FALSE}
+cereal %>%
+    group_by(Operator) %>%
+    ggplot(aes(y=Weight)) +
+    geom_boxplot(fill="cornflowerblue", linewidth=1) +
+    geom_hline(yintercept=c(4,6), color="darkred", linewidth=1, linetype="dashed") +
+    geom_hline(yintercept=5, color="black", linewidth=1, linetype = "dashed") +
+    theme_bw() +
+    labs(
+        title="Scoop weight by operator"
+    ) +
+    facet_grid(.~Operator)
+```
+
+Through further analysis, and operator faceting this under performance was viewed to be strongly due to operator performance, where one operator was significantly pulling down the mean of the scoop weights by producing weights that were mostly falling under the LCL. Identifying operator performance as a factor to abnormal process variability indicates that operator retraining is needed in order to improve the process stability. Process improvement suggestions on this front include operator retraining that focuses on creating a more visible benchmark for the scoop by indicating how full a scoop needs to be to reach the target weight. For example a scoop should only be withdrawn from the cereal container when the amount within the cup is level with the top of the cup. Establishing the metric of a "full" scoop should help increase the mean of the scoop weight and shift the process upwards in order to stabilize the process and update the control limits.
+
+The data metrics for the cereal attribute data of number of pieces per scoop and number of nonconforming pieces per scoop is further indicative of a process that is unstable. The number of pieces that were being scooped displayed a mean of 56.1 pieces, which resided over the established specification limits of 55 pieces. This in combination with the under performing weight values leads to an early indication of a high defect rate. Having such a high amount of cereal pieces but still falling under the weight target leads to speculation that many of the pieces will be smaller than what they are expected to be and as such may be broken and considered non-conforming. This speculation was supported by the proportion of nonconforming pieces which far exceeded it's specification limits of under 5% and landed at a pooled proportion of about 21%.
+
+```{r echo=FALSE}
+cereal %>%
+    mutate(
+        prop_defects=`Number defects`/`Number of pieces`
+    ) %>%
+    ggplot(aes(x=`Number of pieces`,y=prop_defects)) +
+    geom_point(color="navy") +
+    geom_smooth(method="lm", color="cornflowerblue", linewidth=1) +
+    theme_minimal() +
+    labs(
+        title="Number of pieces vs defect rate",
+        y="Defect rate"
+    ) +
+    scale_y_continuous(labels=scales::label_percent(),breaks=seq(0,1,0.05))
+```
+
+In this chart, the defect rate (number of defects divided by number of pieces) for each scoop is compared to the number of pieces in that scoop. There seems to be a positive correlation between the two, indicating that limiting the number of defects may help to stabilize the number of pieces. It is being influenced by broken pieces, which increase the number of pieces without filling the scoop as much as whole pieces would.
+
+Through the attribute data Goreos Cereal is able to identify another point of instability and inconsistency of it's manufacturing process, which is the that its cereal pieces are not being produced as entire pieces of cereal or the packaging is not providing sufficient protection during transport to maintain the pieces whole. As seen in the graph below, the number of defects did not increase during our testing process. Based on the linear model overlaid on the graph, if anything, the number of defects decreased. Since few, if any, pieces were broken during testing, the broken pieces are a result of the manufacturing or transportation processes.
+
+```{r echo=FALSE}
+cereal %>%
+    ggplot(aes(x=Trial,y=`Number defects`/`Number of pieces`)) +
+    geom_line(color="navy", linewidth=1.1) +
+    geom_smooth(color="cornflowerblue", linewidth=1, method="lm") +
+    theme_minimal() +
+    labs(
+        title="Number of non-conforming pieces over time",
+        subtitle="with overlaid linear model",
+        y="Proportion of non-conforming pieces"
+    ) +
+    scale_y_continuous(labels=scales::label_percent(),breaks=seq(0,1,0.05))
+```
+
+To address these manufacturing issues, further data collection is needed to identify if the majority of the nonconforming cereal pieces are being found immediately after production or after transport. A suggestion would be to collect data to plot nonconforming pieces before and after being packaged and transported. If the issues are rooted in the production of the cereal pieces than the production machines need to be re-calibrated or replaced to handle the cereal material. If this is not a plausible approach, the structure of the cereal itself should be reviewed to identify if structure alterations would improve the production process. Changes such as making the cereal a whole piece and only imprinting a honey comb print rather than having the cereal piece mimic a honeycomb structure would improve the structural stability of the cereal. Further, if the issue is rooted in the packaging integrity and transportation then the packaging material should either be re-designed to be able to keep the cereal pieces whole or the transport method should be improved, properly training transporters on how to store and deliver cargo to diminish the proportion of non-conforming pieces.
+
+# Conclusion
+
+This testing found Goreos cereal manufacturing processes to be unstable. Every scoop's weight fell within the specification limits of 5 grams $\pm$ 1 gram, but with variance that indicated an unstable process. The target for non-conforming pieces was to have 5% or fewer defective pieces per scoop. Even the lowest defect rate in the sample was over 10%, showing that significant changes should be made to lower the defect rate. The number of pieces were less egregiously outside of the specification limits of 50 $\pm$ 5. The average was above the upper specification limit, at 56.1 pieces.
+
+Significant changes should be made to Goreo's process, particularly in the rate of defective pieces and the number of pieces per scoop. As these two may be linked, methods to decrease the rate of defective and broken pieces will likely bring the number of pieces per scoop closer to the specification limits. Therefore, changes to lower the defect rate should be made the highest priority. Stabilizing variance in the measured attributes of the manufacturing process should lead to higher rates of customer satisfaction and loyalty, as ensuring that they are receiving fair quantities of the cereal for the price they are paying and that the cereal is representative of the quality products that Goreos Cereal aims to produce should lead to high repurchase rate.
